@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase/client';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { connectDB } from '@/lib/database/connection';
-import User from '@/lib/database/models/User';
 import { validateEmail, validatePassword } from '@/lib/utils/validation';
 
 export async function POST(request) {
@@ -24,12 +22,14 @@ export async function POST(request) {
       );
     }
 
-    // Connect to database
-    await connectDB();
+    // Find user in Supabase
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
 
-    // Find user
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -37,7 +37,7 @@ export async function POST(request) {
     }
 
     // Check password
-    const isValidPassword = await user.comparePassword(password);
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -46,7 +46,7 @@ export async function POST(request) {
     }
 
     // Check if account is verified
-    if (!user.isVerified) {
+    if (!user.is_verified) {
       return NextResponse.json(
         { error: 'Please verify your email before logging in' },
         { status: 401 }
@@ -54,58 +54,82 @@ export async function POST(request) {
     }
 
     // Update login stats
-    user.lastLogin = new Date();
-    user.loginCount += 1;
-    
-    // Get IP address from request
     const forwarded = request.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
-    user.ipAddress = ip;
-    user.userAgent = request.headers.get('user-agent') || 'unknown';
     
-    await user.save();
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({
+        last_login: new Date().toISOString(),
+        login_count: user.login_count + 1,
+        ip_address: ip,
+        user_agent: request.headers.get('user-agent') || 'unknown'
+      })
+      .eq('id', user.id);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        userId: user._id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    if (updateError) {
+      console.error('Error updating login stats:', updateError);
+    }
+
+    // Sign in with Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: user.email,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`
+      }
+    });
+
+    if (authError) {
+      console.error('Auth error:', authError);
+      return NextResponse.json(
+        { error: 'Authentication failed' },
+        { status: 500 }
+      );
+    }
 
     // Prepare user data (exclude sensitive information)
     const userData = {
-      id: user._id,
+      id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      fullName: `${user.first_name} ${user.last_name}`,
       role: user.role,
-      subscription: user.subscription,
-      tradingConfig: user.tradingConfig,
-      stats: user.stats,
-      lastLogin: user.lastLogin,
-      loginCount: user.loginCount
+      subscription: {
+        plan: user.subscription_plan,
+        isActive: user.subscription_is_active,
+        startDate: user.subscription_start_date,
+        endDate: user.subscription_end_date
+      },
+      tradingConfig: {
+        maxDrawdown: user.max_drawdown,
+        maxDailyLoss: user.max_daily_loss,
+        maxPositionSize: user.max_position_size,
+        defaultLotSize: user.default_lot_size,
+        riskLevel: user.risk_level
+      },
+      stats: {
+        totalTrades: user.total_trades,
+        winningTrades: user.winning_trades,
+        losingTrades: user.losing_trades,
+        totalProfit: user.total_profit,
+        totalLoss: user.total_loss,
+        winRate: user.win_rate,
+        profitFactor: user.profit_factor,
+        maxDrawdownReached: user.max_drawdown_reached
+      },
+      lastLogin: user.last_login,
+      loginCount: user.login_count + 1
     };
 
-    // Set HTTP-only cookie for token
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       message: 'Login successful',
-      user: userData
+      user: userData,
+      accessToken: authData.properties?.access_token,
+      refreshToken: authData.properties?.refresh_token
     });
-
-    response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    });
-
-    return response;
 
   } catch (error) {
     console.error('Login error:', error);
