@@ -25,27 +25,25 @@ npm install
 ```
 
 ### 2. Environment Setup
-Create a `.env.local` file in the root directory with the following variables:
+Copy the example environment file and configure your variables:
 
-```env
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key_here
-CLERK_SECRET_KEY=sk_test_your_clerk_secret_key_here
-
-# Supabase Database
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
-
-# Trading API Keys (optional for demo)
-NEXT_PUBLIC_TRADING_API_URL=https://api.trading.com
-TRADING_API_KEY=your_trading_api_key_here
-TRADING_API_SECRET=your_trading_api_secret_here
-
-# App Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NODE_ENV=development
+```bash
+cp .env.example .env.local
 ```
+
+Edit `.env.local` and fill in your actual values. The `.env.example` file contains all required variables with descriptions and example values.
+
+**Required Variables:**
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk authentication (get from https://clerk.com)
+- `CLERK_SECRET_KEY` - Clerk secret key
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (get from https://supabase.com)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key
+
+**Optional Variables (for demo mode):**
+- Trading API keys for real trading integration
+- Market data API keys for real market data
+- Monitoring and analytics keys
 
 ### 3. Run Development Server
 ```bash
