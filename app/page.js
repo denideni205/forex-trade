@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useUser, SignInButton, SignUpButton } from '@clerk/nextjs';
+import Link from 'next/link';
 import { 
   TrendingUp, 
   Shield, 
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
+  const { isSignedIn, user } = useUser();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalTrades: 0,
@@ -120,12 +123,30 @@ export default function Home() {
               <a href="#contact" className="text-gray-300 hover:text-white transition-colors">Contact</a>
             </nav>
             <div className="flex space-x-4">
-              <button className="px-4 py-2 text-white hover:text-blue-400 transition-colors">
-                Sign In
-              </button>
-              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                Get Started
-              </button>
+              {isSignedIn ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-300">Welcome, {user.firstName}!</span>
+                  <Link 
+                    href="/dashboard"
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <SignInButton mode="modal">
+                    <button className="px-4 py-2 text-white hover:text-blue-400 transition-colors">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                      Get Started
+                    </button>
+                  </SignUpButton>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -164,13 +185,27 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 transition-all transform hover:scale-105">
-                <span>Start Trading Now</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="px-8 py-4 border border-white/20 text-white rounded-xl font-semibold hover:bg-white/10 transition-all">
-                Watch Demo
-              </button>
+              {isSignedIn ? (
+                <Link 
+                  href="/dashboard"
+                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 transition-all transform hover:scale-105"
+                >
+                  <span>Go to Dashboard</span>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              ) : (
+                <>
+                  <SignUpButton mode="modal">
+                    <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 transition-all transform hover:scale-105">
+                      <span>Start Trading Now</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </SignUpButton>
+                  <button className="px-8 py-4 border border-white/20 text-white rounded-xl font-semibold hover:bg-white/10 transition-all">
+                    Watch Demo
+                  </button>
+                </>
+              )}
             </motion.div>
           </div>
 
@@ -299,12 +334,25 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-gray-100 transition-all transform hover:scale-105">
-              Start Free Trial
-            </button>
-            <button className="px-8 py-4 border border-white/30 text-white rounded-xl font-semibold hover:bg-white/10 transition-all">
-              Contact Sales
-            </button>
+            {isSignedIn ? (
+              <Link 
+                href="/dashboard"
+                className="px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <SignUpButton mode="modal">
+                  <button className="px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold hover:bg-gray-100 transition-all transform hover:scale-105">
+                    Start Free Trial
+                  </button>
+                </SignUpButton>
+                <button className="px-8 py-4 border border-white/30 text-white rounded-xl font-semibold hover:bg-white/10 transition-all">
+                  Contact Sales
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -326,9 +374,9 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Strategies</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#strategies" className="hover:text-white transition-colors">Strategies</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">API</a></li>
               </ul>
             </div>
